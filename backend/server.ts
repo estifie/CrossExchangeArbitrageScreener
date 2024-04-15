@@ -142,7 +142,7 @@ wss.on("connection", (ws: any) => {
 		} else if (message.type === "search-arbitrage") {
 			const startingExchange = message.startingExchange || "all";
 			const endingExchange = message.endingExchange || "all";
-			const startingCurrency = message.startingCurrency || "all";
+			const startingCurrency = message.startingCurrency || "USDT";
 			await client.checkArbitrage(startingExchange, endingExchange, startingCurrency).then((opportunities: any) => {
 				sendMessageToClient(clientId, { type: "arbitrage", data: opportunities });
 			});
