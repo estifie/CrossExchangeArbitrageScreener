@@ -95,12 +95,6 @@ const client = new Client({
 	exchanges,
 });
 
-let botSettings = {
-	startingCurrency: "USDT",
-	rowCount: 10,
-	balance: 100,
-	interval: 1000,
-};
 const app = express();
 const port = 8000;
 
@@ -135,18 +129,21 @@ wss.on("connection", (ws: any) => {
 		message = JSON.parse(message);
 
 		if (message.type === "handshake") {
-			console.log("Client connected");
 			sendMessageToClient(clientId, { type: "handshake", data: "Successfully connected" });
 		} else if (message.type === "fetch-currencies") {
-			await client.fetchCurrencies();
-			sendMessageToClient(clientId, { type: "currencies", data: "Successfully fetched currencies" });
+			await client.fetchCurrencies().then((currencies: any) => {
+				sendMessageToClient(clientId, { type: "currencies", data: "Successfully fetched currencies" });
+			});
 		} else if (message.type === "fetch-tickers") {
-			await client.fetchTickers();
-			sendMessageToClient(clientId, { type: "tickers", data: "Successfully fetched tickers" });
+			const startingCurrency = message.startingCurrency || "all";
+			await client.fetchTickers(startingCurrency).then((tickers: any) => {
+				sendMessageToClient(clientId, { type: "tickers", data: "Successfully fetched tickers" });
+			});
 		} else if (message.type === "search-arbitrage") {
 			const startingExchange = message.startingExchange || "all";
 			const endingExchange = message.endingExchange || "all";
-			await client.checkArbitrage(startingExchange, endingExchange).then((opportunities: any) => {
+			const startingCurrency = message.startingCurrency || "all";
+			await client.checkArbitrage(startingExchange, endingExchange, startingCurrency).then((opportunities: any) => {
 				sendMessageToClient(clientId, { type: "arbitrage", data: opportunities });
 			});
 		}

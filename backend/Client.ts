@@ -73,10 +73,10 @@ export class Client {
 	 * Fetches the tickers for all the exchanges.
 	 * @returns A promise that resolves to an object containing the tickers.
 	 */
-	async fetchTickers(): Promise<{ [key: string]: { [key: string]: TickerData } }> {
+	async fetchTickers(startingCurrency: string): Promise<{ [key: string]: { [key: string]: TickerData } }> {
 		const promises = this.exchanges.map(async (exchange) => {
 			console.log(`Fetching tickers for ${exchange.clientName}...`);
-			const tickers = await exchange.fetchTickers();
+			const tickers = await exchange.fetchTickers(startingCurrency);
 			for (const symbol in tickers) {
 				if (!this.exchangeTickers[symbol]) {
 					this.exchangeTickers[symbol] = {};
@@ -88,7 +88,7 @@ export class Client {
 		return this.exchangeTickers;
 	}
 
-	async checkArbitrage(startingExchange: string, endingExchange: string): Promise<any> {
+	async checkArbitrage(startingExchange: string, endingExchange: string, startingCurrency: string): Promise<any> {
 		/**
 		 *
 		 * 	1. Check for blacklisted currencies
@@ -97,7 +97,7 @@ export class Client {
 		 *
 		 */
 
-		await this.fetchTickers();
+		await this.fetchTickers(startingCurrency);
 
 		// If there are no tickers, return
 		if (Object.keys(this.exchangeTickers).length === 0) {
@@ -201,15 +201,15 @@ export class Client {
 
 						const buyOrderBookText = `${baseOrderBook?.[0]?.[0]!.toFixed(5)} - ${(
 							baseOrderBook?.[0]?.[0]! * baseOrderBook?.[0]?.[1]!
-						).toFixed(3)} USDT\n${baseOrderBook?.[1]?.[0]!.toFixed(5)} - ${(
+						).toFixed(3)} ${quoteCurrency}\n${baseOrderBook?.[1]?.[0]!.toFixed(5)} - ${(
 							baseOrderBook?.[1]?.[0]! * baseOrderBook?.[1]?.[1]!
-						).toFixed(3)} USDT`;
+						).toFixed(3)} ${quoteCurrency}`;
 
 						const sellOrderBookText = `${quoteOrderBook?.[0]?.[0]!.toFixed(5)} - ${(
 							quoteOrderBook?.[0]?.[0]! * quoteOrderBook?.[0]?.[1]!
-						).toFixed(3)} UDST\n${quoteOrderBook?.[1]?.[0]!.toFixed(5)} - ${(
+						).toFixed(3)} ${quoteCurrency}\n${quoteOrderBook?.[1]?.[0]!.toFixed(5)} - ${(
 							quoteOrderBook?.[1]?.[0]! * quoteOrderBook?.[1]?.[1]!
-						).toFixed(3)} USDT`;
+						).toFixed(3)} ${quoteCurrency}`;
 
 						arbitrageOpportunities.push({
 							pair: `${baseCurrency}/${quoteCurrency}`,
@@ -222,21 +222,6 @@ export class Client {
 							chain: baseChain?.chainName,
 							buyOrderbook: buyOrderBookText,
 							sellOrderbook: sellOrderBookText,
-							// baseExchange,
-							// quoteExchange,
-							// baseAskPrice,
-							// quoteBidPrice,
-							// baseCurrency,
-							// quoteCurrency,
-							// profitWithTradingFees,
-							// profitWithoutTradingFees,
-							// validChainNames,
-							// baseChain,
-							// withdrawFee,
-							// baseChainData,
-							// quoteChainData,
-							// baseOrderBook,
-							// quoteOrderBook,
 						});
 					}
 				}
@@ -292,13 +277,13 @@ export class Exchange {
 	 * Fetches the tickers for the exchange.
 	 * @returns A promise that resolves to an object containing the tickers.
 	 */
-	async fetchTickers(): Promise<{ [key: string]: TickerData }> {
+	async fetchTickers(startingCurrency: string): Promise<{ [key: string]: TickerData }> {
 		const tickers = await this.client.fetchTickers();
 
 		const promises = Object.entries(tickers)
-			.filter(([symbol, _]) => symbol.includes("/USDT")) // Filter out tickers that are not USDT pairs
+			.filter(([symbol, _]) => symbol.includes(`/${startingCurrency}`))
 			.map(async ([symbol, ticker]) => {
-				symbol = symbol.replace(/:USDT$/, "");
+				symbol = symbol.replace(new RegExp(`:${startingCurrency}$`), "");
 
 				const tickerData: TickerData = {
 					bid: Number(ticker.bid),
