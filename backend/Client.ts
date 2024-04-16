@@ -1,4 +1,4 @@
-import ccxt, { Exchange as CCXTExchange, Currency, OrderBook, Ticker } from "ccxt";
+import ccxt, { Balances, Exchange as CCXTExchange, Currency, OrderBook, Ticker } from "ccxt";
 import { chainNameNormalizer } from "./utils";
 
 interface ExchangeParams {
@@ -232,6 +232,16 @@ export class Client {
 
 		return sortedArbitrageOpportunities;
 	}
+
+	async fetchBalances(): Promise<{ [key: string]: Balances }> {
+		const promises = this.exchanges.map(async (exchange) => {
+			console.log(`Fetching balances for ${exchange.clientName}...`);
+			const balances = await exchange.fetchBalances();
+			console.log(balances);
+		});
+		await Promise.all(promises);
+		return {};
+	}
 }
 
 export class Exchange {
@@ -311,5 +321,16 @@ export class Exchange {
 	async fetchOrderBook(symbol: string): Promise<OrderBook> {
 		const orderbook = await this.client.fetchOrderBook(symbol);
 		return orderbook;
+	}
+
+	/**
+	 *
+	 * Fetches the balances for the exchange
+	 * @returns A promise that resolves to an object containing the balances
+	 *
+	 */
+	async fetchBalances(): Promise<Balances> {
+		const balances = await this.client.fetchBalance();
+		return balances;
 	}
 }
