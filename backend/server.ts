@@ -146,6 +146,12 @@ wss.on("connection", (ws: any) => {
 			await client.checkArbitrage(startingExchange, endingExchange, startingCurrency).then((opportunities: any) => {
 				sendMessageToClient(clientId, { type: "arbitrage", data: opportunities });
 			});
+		} else if (message.type === "activate-balance-refresh") {
+			const interval = setInterval(async () => {
+				await client.fetchBalances().then((balances: any) => {
+					sendMessageToClient(clientId, { type: "balances", data: balances });
+				});
+			}, 1000);
 		}
 	});
 
